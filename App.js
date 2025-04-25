@@ -1,20 +1,52 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import buoi1 from "./screens/buoi1";
+import HomeScreen from "./screens/HomeScreen";
+import buoi2 from "./screens/buoi2";
+import LoginScreen from "./screens/buoi3/LoginScreen";
+import RegisterScreen from "./screens/buoi3/RegisterScreen";
+import ForgotPasswordScreen from "./screens/buoi3/ForgotPasswordScreen";
+import DrawerNavigator from "./screens/buoi4/DrawerNavigator";
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="HomeScreen">
+        <Stack.Screen
+          name="HomeScreen"
+          options={{ headerShown: false }}
+          component={HomeScreen}
+        />
+        <Stack.Screen name="buoi1" component={buoi1} />
+        <Stack.Screen
+          name="buoi2"
+          component={buoi2}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Register"
+          component={RegisterScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DrawerHome"
+          component={DrawerNavigator}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
