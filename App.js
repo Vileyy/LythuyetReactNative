@@ -9,6 +9,7 @@ import RegisterScreen from "./screens/buoi3/RegisterScreen";
 import ForgotPasswordScreen from "./screens/buoi3/ForgotPasswordScreen";
 import FirebaseHome from "./screens/buoi3/FirebaseHome";
 import DrawerNavigator from "./screens/buoi4/DrawerNavigator";
+import TodoApp from "./screens/buoi5/TodoApp";
 
 const Stack = createNativeStackNavigator();
 
@@ -50,6 +51,11 @@ export default function App() {
         <Stack.Screen
           name="FirebaseHome"
           component={FirebaseHome}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="TodoApp"
+          component={TodoApp}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

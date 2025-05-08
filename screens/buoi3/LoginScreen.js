@@ -86,9 +86,8 @@ const LoginScreen = () => {
           100
         );
 
-        // Chuyển đến màn hình FirebaseHome
         setTimeout(() => {
-          navigation.navigate("FirebaseHome");
+          navigation.navigate("TodoApp");
         }, 800);
       } catch (error) {
         setLoading(false);

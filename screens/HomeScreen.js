@@ -33,6 +33,12 @@ const HomeScreen = ({ navigation }) => {
       >
         <Text style={styles.text}>Bài tập buổi 4</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate("TodoApp")}
+      >
+        <Text style={styles.text}>Bài tập buổi 5</Text>
+      </TouchableOpacity>
     </View>
   );
 };
