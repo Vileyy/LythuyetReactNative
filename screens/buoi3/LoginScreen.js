@@ -6,9 +6,13 @@ import {
   Text,
   Image,
   Alert,
+  ActivityIndicator,
+  ToastAndroid,
 } from "react-native";
 import { TextInput, useTheme } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
+import { auth } from "../../firebaseConfig";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 const LoginScreen = () => {
   const { colors } = useTheme();
@@ -17,6 +21,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleShowinformation = () => {
     if (email && password) {
@@ -46,7 +51,7 @@ const LoginScreen = () => {
     }
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     let newErrors = {};
 
     if (!email) {
@@ -62,7 +67,42 @@ const LoginScreen = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      console.log("Login with:", email, password);
+      try {
+        setLoading(true);
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const user = userCredential.user;
+
+        // Hiển thị thông báo Toast và tắt loading
+        setLoading(false);
+        ToastAndroid.showWithGravityAndOffset(
+          "Đăng nhập thành công!",
+          ToastAndroid.SHORT,
+          ToastAndroid.BOTTOM,
+          0,
+          100
+        );
+
+        // Chuyển đến màn hình FirebaseHome
+        setTimeout(() => {
+          navigation.navigate("FirebaseHome");
+        }, 800);
+      } catch (error) {
+        setLoading(false);
+        let errorMessage = "Đăng nhập thất bại";
+        if (
+          error.code === "auth/user-not-found" ||
+          error.code === "auth/wrong-password"
+        ) {
+          errorMessage = "Email hoặc mật khẩu không đúng";
+        } else if (error.code === "auth/invalid-email") {
+          errorMessage = "Email không hợp lệ";
+        }
+        Alert.alert("Lỗi", errorMessage);
+      }
     }
   };
 
@@ -120,8 +160,16 @@ const LoginScreen = () => {
           <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Đăng nhập</Text>
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Đăng nhập</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -218,6 +266,10 @@ const styles = StyleSheet.create({
     color: "orange",
     fontSize: 15,
     fontWeight: "bold",
+  },
+  buttonDisabled: {
+    backgroundColor: "#ccc",
+    opacity: 0.7,
   },
 });
 

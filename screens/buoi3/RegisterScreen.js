@@ -1,7 +1,18 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Text, Image } from "react-native";
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  Image,
+  Alert,
+  ActivityIndicator,
+  ToastAndroid,
+} from "react-native";
 import { TextInput, useTheme } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
+import { auth } from "../../firebaseConfig";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 const RegisterScreen = () => {
   const { colors } = useTheme();
@@ -14,8 +25,9 @@ const RegisterScreen = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     let newErrors = {};
 
     if (!email) {
@@ -27,7 +39,7 @@ const RegisterScreen = () => {
     // Validate password
     if (!password) {
       newErrors.password = "Vui lòng nhập mật khẩu";
-    } else if (password.length < 8) {
+    } else if (password.length < 6) {
       newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
     }
 
@@ -42,8 +54,41 @@ const RegisterScreen = () => {
 
     // If no errors, proceed with registration
     if (Object.keys(newErrors).length === 0) {
-      // Handle registration logic here
-      console.log("Register with:", email, password);
+      try {
+        setLoading(true);
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const user = userCredential.user;
+
+        // Hiển thị thông báo và tắt loading
+        setLoading(false);
+        ToastAndroid.showWithGravityAndOffset(
+          "Đăng ký thành công! Chuyển sang trang đăng nhập...",
+          ToastAndroid.LONG,
+          ToastAndroid.BOTTOM,
+          0,
+          100
+        );
+
+        // Tự động chuyển sang màn hình Login sau 1.2 giây
+        setTimeout(() => {
+          navigation.navigate("Login");
+        }, 1200);
+      } catch (error) {
+        setLoading(false);
+        let errorMessage = "Đăng ký thất bại";
+        if (error.code === "auth/email-already-in-use") {
+          errorMessage = "Email này đã được sử dụng";
+        } else if (error.code === "auth/invalid-email") {
+          errorMessage = "Email không hợp lệ";
+        } else if (error.code === "auth/weak-password") {
+          errorMessage = "Mật khẩu quá yếu";
+        }
+        Alert.alert("Lỗi", errorMessage);
+      }
     }
   };
 
@@ -69,6 +114,7 @@ const RegisterScreen = () => {
           activeOutlineColor={colors.primary}
           error={!!errors.email}
           autoCapitalize="none"
+          disabled={loading}
         />
         {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
@@ -81,6 +127,7 @@ const RegisterScreen = () => {
           style={styles.input}
           activeOutlineColor={colors.primary}
           error={!!errors.password}
+          disabled={loading}
           right={
             <TextInput.Icon
               icon={showPassword ? "eye-off" : "eye"}
@@ -102,6 +149,7 @@ const RegisterScreen = () => {
           style={styles.input}
           activeOutlineColor={colors.primary}
           error={!!errors.confirmPassword}
+          disabled={loading}
           right={
             <TextInput.Icon
               icon={showConfirmPassword ? "eye-off" : "eye"}
@@ -114,8 +162,16 @@ const RegisterScreen = () => {
           <Text style={styles.errorText}>{errors.confirmPassword}</Text>
         )}
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
-          <Text style={styles.buttonText}>Đăng ký</Text>
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleRegister}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Đăng ký</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -188,6 +244,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 3,
+  },
+  buttonDisabled: {
+    backgroundColor: "#ccc",
+    opacity: 0.7,
   },
   buttonText: {
     color: "#fff",
