@@ -6,15 +6,29 @@ import {
   FlatList,
   StyleSheet,
   Alert,
+  SafeAreaView,
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { db } from "../../firebaseConfig";
 import { ref, push, onValue, remove, update } from "firebase/database";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TodoApp() {
   const [todos, setTodos] = useState([]);
   const [newTodo, setNewTodo] = useState("");
   const [editingTodo, setEditingTodo] = useState(null);
+
+  // Format date function
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   // Fetch todos from Firebase
   useEffect(() => {
@@ -26,6 +40,7 @@ export default function TodoApp() {
           id: key,
           ...data[key],
         }));
+        todoList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setTodos(todoList);
       } else {
         setTodos([]);
@@ -47,14 +62,27 @@ export default function TodoApp() {
       text: newTodo,
       completed: false,
       createdAt: new Date().toISOString(),
+      completedAt: null,
     });
     setNewTodo("");
   };
 
   // Delete todo
   const deleteTodo = (id) => {
-    const todoRef = ref(db, `todos/${id}`);
-    remove(todoRef);
+    Alert.alert("Delete Todo", "Are you sure you want to delete this todo?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => {
+          const todoRef = ref(db, `todos/${id}`);
+          remove(todoRef);
+        },
+      },
+    ]);
   };
 
   // Update todo
@@ -62,6 +90,7 @@ export default function TodoApp() {
     const todoRef = ref(db, `todos/${id}`);
     update(todoRef, {
       text: newText,
+      updatedAt: new Date().toISOString(),
     });
     setEditingTodo(null);
   };
@@ -71,11 +100,12 @@ export default function TodoApp() {
     const todoRef = ref(db, `todos/${id}`);
     update(todoRef, {
       completed: !completed,
+      completedAt: !completed ? new Date().toISOString() : null,
     });
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.todoItem}>
+    <View style={[styles.todoItem, item.completed && styles.completedTodoItem]}>
       {editingTodo === item.id ? (
         <TextInput
           style={styles.editInput}
@@ -86,28 +116,48 @@ export default function TodoApp() {
         />
       ) : (
         <>
-          <TouchableOpacity
-            style={styles.todoText}
-            onPress={() => toggleTodo(item.id, item.completed)}
-          >
-            <Text
-              style={[styles.todoText, item.completed && styles.completedTodo]}
+          <View style={styles.todoContent}>
+            <TouchableOpacity
+              style={styles.todoCheckbox}
+              onPress={() => toggleTodo(item.id, item.completed)}
             >
-              {item.text}
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name={item.completed ? "checkmark-circle" : "ellipse-outline"}
+                size={24}
+                color={item.completed ? "#4CAF50" : "#666"}
+              />
+            </TouchableOpacity>
+            <View style={styles.todoTextContainer}>
+              <Text
+                style={[
+                  styles.todoText,
+                  item.completed && styles.completedTodoText,
+                ]}
+              >
+                {item.text}
+              </Text>
+              <Text style={styles.todoDate}>
+                Created: {formatDate(item.createdAt)}
+              </Text>
+              {item.completed && item.completedAt && (
+                <Text style={styles.todoDate}>
+                  Completed: {formatDate(item.completedAt)}
+                </Text>
+              )}
+            </View>
+          </View>
           <View style={styles.todoActions}>
             <TouchableOpacity
               onPress={() => setEditingTodo(item.id)}
-              style={styles.actionButton}
+              style={[styles.actionButton, styles.editButton]}
             >
-              <Text style={styles.actionButtonText}>Edit</Text>
+              <Ionicons name="pencil" size={20} color="#fff" />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => deleteTodo(item.id)}
               style={[styles.actionButton, styles.deleteButton]}
             >
-              <Text style={styles.actionButtonText}>Delete</Text>
+              <Ionicons name="trash" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
         </>
@@ -116,8 +166,11 @@ export default function TodoApp() {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Todo List</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Todo List</Text>
+        <Text style={styles.subtitle}>Manage your tasks efficiently</Text>
+      </View>
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -127,7 +180,7 @@ export default function TodoApp() {
           placeholderTextColor="#666"
         />
         <TouchableOpacity style={styles.addButton} onPress={addTodo}>
-          <Text style={styles.addButtonText}>Add</Text>
+          <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
       <FlatList
@@ -135,54 +188,69 @@ export default function TodoApp() {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         style={styles.list}
+        contentContainerStyle={styles.listContent}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: "#f5f5f5",
   },
+  header: {
+    padding: 20,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 20,
     color: "#333",
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
   },
   inputContainer: {
     flexDirection: "row",
-    marginBottom: 20,
+    padding: 15,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
   input: {
     flex: 1,
-    height: 40,
+    height: 45,
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 10,
+    borderRadius: 10,
+    paddingHorizontal: 15,
     marginRight: 10,
     backgroundColor: "#fff",
+    fontSize: 16,
   },
   addButton: {
+    width: 45,
+    height: 45,
     backgroundColor: "#007AFF",
-    padding: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     justifyContent: "center",
-  },
-  addButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
+    alignItems: "center",
   },
   list: {
     flex: 1,
   },
+  listContent: {
+    padding: 15,
+  },
   todoItem: {
     backgroundColor: "#fff",
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
@@ -196,30 +264,51 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  todoText: {
+  completedTodoItem: {
+    backgroundColor: "#f8f8f8",
+  },
+  todoContent: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  todoCheckbox: {
+    marginRight: 10,
+  },
+  todoTextContainer: {
+    flex: 1,
+  },
+  todoText: {
     fontSize: 16,
     color: "#333",
+    marginBottom: 4,
   },
-  completedTodo: {
+  completedTodoText: {
     textDecorationLine: "line-through",
     color: "#888",
   },
+  todoDate: {
+    fontSize: 12,
+    color: "#888",
+    marginTop: 2,
+  },
   todoActions: {
     flexDirection: "row",
+    marginLeft: 10,
   },
   actionButton: {
-    padding: 8,
-    marginLeft: 10,
-    borderRadius: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  editButton: {
     backgroundColor: "#007AFF",
   },
   deleteButton: {
     backgroundColor: "#FF3B30",
-  },
-  actionButtonText: {
-    color: "#fff",
-    fontSize: 12,
   },
   editInput: {
     flex: 1,
@@ -230,5 +319,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginRight: 10,
     backgroundColor: "#fff",
+    fontSize: 16,
   },
 });
